@@ -18,12 +18,9 @@ import (
 	"github.com/kasworld/rangestat"
 )
 
-type ClientArgI interface {
-}
-
 type ClientI interface {
 	Run(mainctx context.Context)
-	GetArg() ClientArgI
+	GetArg() interface{}
 	GetRunResult() error
 }
 
@@ -34,8 +31,8 @@ func Run(
 	AccountOverlap int,
 	LimitStartCount int,
 	LimitEndCount int,
-	NewClientFn func(config ClientArgI) ClientI,
-	NewClientArgFn func(i int) ClientArgI,
+	NewClientFn func(config interface{}) ClientI,
+	NewClientArgFn func(i int) interface{},
 	EndErrorCh chan<- error,
 	RunStat *rangestat.RangeStat,
 ) {
@@ -44,7 +41,7 @@ func Run(
 		AccountPool = Concurrent
 	}
 
-	var clientArgToRun chan ClientArgI
+	var clientArgToRun chan interface{}
 	waitStartCh := make(chan ClientI, Concurrent)
 	endedCh := make(chan ClientI, Concurrent)
 
@@ -77,14 +74,14 @@ func Run(
 
 	// make account pool to run
 	if AccountOverlap == 1 {
-		clientArgToRun = make(chan ClientArgI, AccountPool*2)
+		clientArgToRun = make(chan interface{}, AccountPool*2)
 		for i := 0; i < AccountPool; i++ {
 			clientArg := NewClientArgFn(i)
 			clientArgToRun <- clientArg
 			clientArgToRun <- clientArg
 		}
 	} else {
-		clientArgToRun = make(chan ClientArgI, AccountPool)
+		clientArgToRun = make(chan interface{}, AccountPool)
 		for i := 0; i < AccountPool; i++ {
 			clientArg := NewClientArgFn(i)
 			clientArgToRun <- clientArg
